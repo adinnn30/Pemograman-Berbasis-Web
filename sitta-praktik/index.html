@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITTA – Login</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/data.js" defer></script>
+</head>
+<body>
+
+<div class="login-page">
+  <!-- Panel Kiri -->
+  <div class="login-left">
+    <div class="login-left-content">
+      <div class="login-logo"><img src="assets/universitas-terbuka-logo.png" alt="Logo UT" width="500" mix-blend-mode: multiply height: auto; 
+    filter: contrast(110%);></div>
+      <h1>SITTA</h1>
+      <p>Sistem Informasi dan Transaksi Bahan Ajar<br>Universitas Terbuka</p>
+      <br>
+      <span style="background:rgba(190, 111, 106, 0.15);color:rgba(252, 252, 252, 0.8);padding:6px 16px;border-radius:20px;font-size:.8rem;">
+        Kelola bahan ajar dengan mudah & efisien
+      </span>
+    </div>
+  </div>
+
+  <!-- Panel Kanan (Form Login) -->
+  <div class="login-right">
+    <div class="login-form-box">
+      <h2>Selamat Datang</h2>
+      <p class="subtitle">Masuk ke akun SITTA Anda</p>
+
+      <!-- Form -->
+      <div class="form-group">
+        <label class="form-label" for="email">Email</label>
+        <div class="input-group">
+          <span class="input-icon">✉️</span>
+          <input class="form-control" type="email" id="email" placeholder="nama@ut.ac.id" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <div class="input-group">
+          <span class="input-icon">🔒</span>
+          <input class="form-control" type="password" id="password" placeholder="Masukkan password">
+          <button class="input-toggle" id="togglePass" type="button" title="Tampilkan password">👁</button>
+        </div>
+      </div>
+
+      <div style="text-align:right;margin-bottom:20px;">
+        <button class="link-btn" id="btnLupaPass">Lupa Password?</button>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btnLogin">Masuk</button>
+
+      <div class="divider"><hr><span>atau</span><hr></div>
+
+      <div class="login-footer">
+        Belum punya akun? <button class="link-btn" id="btnDaftar">Daftar di sini</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Lupa Password -->
+<div class="modal-backdrop" id="modalLupaPass">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">🔑 Lupa Password</span>
+      <button class="modal-close" data-close="modalLupaPass">✕</button>
+    </div>
+    <p style="color:var(--gray-600);font-size:.9rem;margin-bottom:20px;">
+      Masukkan email terdaftar Anda. Kami akan mengirimkan instruksi reset password.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Email Terdaftar</label>
+      <div class="input-group">
+        <span class="input-icon">✉️</span>
+        <input class="form-control" type="email" id="resetEmail" placeholder="nama@ut.ac.id">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="btnReset">Kirim Instruksi Reset</button>
+  </div>
+</div>
+
+<!-- Modal: Daftar Akun -->
+<div class="modal-backdrop" id="modalDaftar">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <span class="modal-title">📝 Daftar Akun Baru</span>
+      <button class="modal-close" data-close="modalDaftar">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nama Lengkap</label>
+      <input class="form-control" type="text" id="regNama" placeholder="Nama Lengkap">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-control" type="email" id="regEmail" placeholder="nama@ut.ac.id">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-control" type="password" id="regPass" placeholder="Minimal 6 karakter">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Role</label>
+      <select class="form-control" id="regRole">
+        <option value="">-- Pilih Role --</option>
+        <option>UPBJJ-UT</option>
+        <option>Puslaba</option>
+        <option>Fakultas</option>
+        <option>Administrator</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" id="btnRegister">Daftarkan Akun</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// =============================================
+// FUNGSI UTILITY
+// =============================================
+function showModal(id) {
+  document.getElementById(id).classList.add('show');
+}
+function hideModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+function showToast(msg, type = 'success') {
+  const icons = { success: '✅', error: '❌', warning: '⚠️' };
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${icons[type]}</span> ${msg}`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// =============================================
+// TOGGLE PASSWORD
+// =============================================
+document.getElementById('togglePass').addEventListener('click', function() {
+  const inp = document.getElementById('password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  this.textContent = inp.type === 'password' ? '👁' : '🙈';
+});
+
+// =============================================
+// LOGIN
+// =============================================
+document.getElementById('btnLogin').addEventListener('click', function() {
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+
+  // Validasi kosong
+  if (!email || !password) {
+    showToast('Email dan password wajib diisi!', 'error');
+    return;
+  }
+
+  // Cek data pengguna dari data.js
+  const user = dataPengguna.find(u => u.email === email && u.password === password);
+
+  if (user) {
+    // Simpan sesi login
+    sessionStorage.setItem('sitta_user', JSON.stringify(user));
+    showToast('Login berhasil! Mengarahkan ke dashboard...', 'success');
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+  } else {
+    showToast('Email/password yang Anda masukkan salah!', 'error');
+  }
+});
+
+// Enter key login
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('btnLogin').click();
+});
+
+// =============================================
+// MODAL CONTROLS
+// =============================================
+document.getElementById('btnLupaPass').addEventListener('click', () => showModal('modalLupaPass'));
+document.getElementById('btnDaftar').addEventListener('click', () => showModal('modalDaftar'));
+
+document.querySelectorAll('.modal-close').forEach(btn => {
+  btn.addEventListener('click', () => hideModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+});
+
+// Reset password
+document.getElementById('btnReset').addEventListener('click', function() {
+  const email = document.getElementById('resetEmail').value.trim();
+  if (!email) { showToast('Masukkan email Anda!', 'warning'); return; }
+  hideModal('modalLupaPass');
+  showToast('Instruksi reset password telah dikirim ke ' + email, 'success');
+});
+
+// Registrasi
+document.getElementById('btnRegister').addEventListener('click', function() {
+  const nama  = document.getElementById('regNama').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass  = document.getElementById('regPass').value.trim();
+  const role  = document.getElementById('regRole').value;
+
+  if (!nama || !email || !pass || !role) {
+    showToast('Semua field wajib diisi!', 'warning');
+    return;
+  }
+  if (pass.length < 6) {
+    showToast('Password minimal 6 karakter!', 'error');
+    return;
+  }
+  hideModal('modalDaftar');
+  showToast('Akun berhasil didaftarkan! Silakan login.', 'success');
+});
+</script>
+
+</body>
+</html>

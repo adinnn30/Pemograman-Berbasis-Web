@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITTA – Tracking Pengiriman</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/data.js" defer></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">📚 SITTA <span class="brand-badge">UT</span></div>
+  <div class="nav-links">
+    <a href="dashboard.html">🏠 Dashboard</a>
+    <a href="stok.html">📦 Informasi Bahan Ajar</a>
+    <a href="tracking.html" class="active">🚚 Tracking Pengiriman</a>
+  </div>
+  <div class="nav-user">
+    <div class="nav-avatar" id="navAvatar">–</div>
+    <span id="navNama">–</span>
+    <button class="btn-logout" onclick="logout()">Keluar</button>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="page-header">
+    <h1>🚚 Tracking Pengiriman</h1>
+    <p>Lacak status pengiriman bahan ajar berdasarkan nomor Delivery Order</p>
+  </div>
+
+  <!-- FORM CARI -->
+  <div class="card" style="max-width:600px;">
+    <div class="card-title"><span class="icon">🔍</span> Cari Pengiriman</div>
+    <div style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="form-group" style="flex:1;margin-bottom:0;">
+        <label class="form-label">Nomor Delivery Order (DO)</label>
+        <div class="input-group">
+          <span class="input-icon">📋</span>
+          <input class="form-control" type="text" id="inputDO" placeholder="Contoh: 2023001234" autocomplete="off">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btnCari" style="height:46px;flex-shrink:0;">🔍 Cari</button>
+    </div>
+    <p style="font-size:.78rem;color:var(--gray-400);margin-top:10px;">
+      Coba: <button class="link-btn" style="font-size:.78rem;" onclick="setDO('2023001234')">2023001234</button> atau
+      <button class="link-btn" style="font-size:.78rem;" onclick="setDO('2023005678')">2023005678</button>
+    </p>
+  </div>
+
+  <!-- HASIL TRACKING -->
+  <div id="trackingResult" class="tracking-result hidden"></div>
+
+  <!-- PESAN ERROR -->
+  <div id="trackingError" class="hidden" style="margin-top:24px;">
+    <div class="card" style="text-align:center;padding:48px;">
+      <div style="font-size:3rem;margin-bottom:16px;">🔍</div>
+      <h3 style="color:var(--gray-800);margin-bottom:8px;">Nomor DO Tidak Ditemukan</h3>
+      <p style="color:var(--gray-400);">Pastikan nomor Delivery Order yang Anda masukkan sudah benar.</p>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// Cek sesi
+window.addEventListener('DOMContentLoaded', function() {
+  const user = JSON.parse(sessionStorage.getItem('sitta_user'));
+  if (!user) { window.location.href = 'index.html'; return; }
+  document.getElementById('navNama').textContent = user.nama;
+  document.getElementById('navAvatar').textContent = user.nama.charAt(0);
+});
+
+function setDO(val) {
+  document.getElementById('inputDO').value = val;
+  cariDO();
+}
+
+function cariDO() {
+  const noDO = document.getElementById('inputDO').value.trim();
+  const resultEl = document.getElementById('trackingResult');
+  const errorEl  = document.getElementById('trackingError');
+
+  resultEl.classList.add('hidden');
+  errorEl.classList.add('hidden');
+
+  if (!noDO) {
+    showToast('Masukkan nomor DO terlebih dahulu!', 'warning');
+    return;
+  }
+
+  const data = dataTracking[noDO];
+
+  if (!data) {
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  // Render timeline
+  const timelineHTML = data.perjalanan.map((p, i) => `
+    <div class="timeline-item">
+      <div style="position:relative;">
+        <div class="tl-dot"></div>
+        ${i < data.perjalanan.length - 1 ? '<div class="tl-line"></div>' : ''}
+      </div>
+      <div class="tl-content">
+        <div class="tl-desc">${p.keterangan}</div>
+        <div class="tl-time">${p.waktu}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const statusClass = data.status === 'Dikirim' ? 'badge-green' : 'badge-gold';
+
+  resultEl.innerHTML = `
+    <div class="tracking-header">
+      <div>
+        <div style="font-size:.8rem;color:rgba(255,255,255,.7);margin-bottom:4px;">Nomor DO</div>
+        <div class="do-number">${data.nomorDO}</div>
+      </div>
+      <span class="status-pill">${data.status}</span>
+    </div>
+    <div class="tracking-body">
+      <div class="tracking-info-grid">
+        <div class="tracking-info-item">
+          <div class="ti-label">Nama Penerima</div>
+          <div class="ti-value">${data.nama}</div>
+        </div>
+        <div class="tracking-info-item">
+          <div class="ti-label">Ekspedisi</div>
+          <div class="ti-value">${data.ekspedisi}</div>
+        </div>
+        <div class="tracking-info-item">
+          <div class="ti-label">Tanggal Kirim</div>
+          <div class="ti-value">${data.tanggalKirim}</div>
+        </div>
+        <div class="tracking-info-item">
+          <div class="ti-label">Jenis Paket</div>
+          <div class="ti-value">${data.paket}</div>
+        </div>
+        <div class="tracking-info-item">
+          <div class="ti-label">Total Pembayaran</div>
+          <div class="ti-value" style="color:var(--ut-green);font-size:1.1rem;">${data.total}</div>
+        </div>
+        <div class="tracking-info-item">
+          <div class="ti-label">Status Pengiriman</div>
+          <div class="ti-value"><span class="badge ${statusClass}">${data.status}</span></div>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-title">📍 Perjalanan Paket</div>
+        ${timelineHTML}
+      </div>
+    </div>
+  `;
+
+  resultEl.classList.remove('hidden');
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('btnCari').addEventListener('click', cariDO);
+document.getElementById('inputDO').addEventListener('keydown', e => {
+  if (e.key === 'Enter') cariDO();
+});
+
+function logout() {
+  if (confirm('Keluar dari SITTA?')) {
+    sessionStorage.removeItem('sitta_user');
+    window.location.href = 'index.html';
+  }
+}
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+
+</body>
+</html>

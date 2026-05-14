@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITTA – Informasi Stok Bahan Ajar</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/data.js" defer></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">📚 SITTA <span class="brand-badge">UT</span></div>
+  <div class="nav-links">
+    <a href="dashboard.html">🏠 Dashboard</a>
+    <a href="stok.html" class="active">📦 Informasi Bahan Ajar</a>
+    <a href="tracking.html">🚚 Tracking Pengiriman</a>
+  </div>
+  <div class="nav-user">
+    <div class="nav-avatar" id="navAvatar">–</div>
+    <span id="navNama">–</span>
+    <button class="btn-logout" onclick="logout()">Keluar</button>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <h1>📦 Informasi Stok Bahan Ajar</h1>
+      <p>Peragaan data bahan ajar yang tersedia di seluruh UPBJJ</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline btn-sm" onclick="toggleView('table')">📋 Tabel</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleView('grid')">⊞ Kartu</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleAddForm()">+ Tambah Stok</button>
+    </div>
+  </div>
+
+  <!-- Ringkasan -->
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+    <div class="stat-card">
+      <div class="stat-icon green">📚</div>
+      <div class="stat-info"><div class="label">Total Item</div><div class="value" id="totalItem">0</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon gold">📦</div>
+      <div class="stat-info"><div class="label">Total Stok</div><div class="value" id="totalStokAll">0</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">📍</div>
+      <div class="stat-info"><div class="label">Lokasi UPBJJ</div><div class="value" id="totalLokasi">0</div></div>
+    </div>
+  </div>
+
+  <!-- TAMPILAN TABEL -->
+  <div id="viewTable" class="card">
+    <div class="card-title"><span class="icon">📋</span> Daftar Bahan Ajar</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kode Lokasi</th>
+            <th>Kode Barang</th>
+            <th>Nama Bahan Ajar</th>
+            <th>Jenis</th>
+            <th>Edisi</th>
+            <th>Stok</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tbStok"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAMPILAN KARTU -->
+  <div id="viewGrid" class="hidden">
+    <div class="book-grid" id="gridStok"></div>
+  </div>
+
+  <!-- FORM TAMBAH STOK (DOM Manipulation) -->
+  <div id="addStokSection" class="add-stok-form hidden">
+    <h3 style="font-weight:700;margin-bottom:18px;color:var(--ut-green);">➕ Tambah Data Stok Baru</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Kode Lokasi</label>
+        <input class="form-control" type="text" id="newKodeLokasi" placeholder="Cth: 0JKT01">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kode Barang</label>
+        <input class="form-control" type="text" id="newKodeBarang" placeholder="Cth: MKDU4110">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nama Bahan Ajar</label>
+      <input class="form-control" type="text" id="newNamaBarang" placeholder="Masukkan nama bahan ajar">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Jenis Barang</label>
+        <select class="form-control" id="newJenis">
+          <option value="BMP">BMP</option>
+          <option value="Suplemen">Suplemen</option>
+          <option value="CD">CD</option>
+          <option value="Paket">Paket</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Edisi</label>
+        <input class="form-control" type="number" id="newEdisi" placeholder="1" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Jumlah Stok</label>
+        <input class="form-control" type="number" id="newStok" placeholder="100" min="0">
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button class="btn btn-primary" onclick="tambahStok()">💾 Simpan Data</button>
+      <button class="btn btn-secondary" onclick="toggleAddForm()">Batal</button>
+    </div>
+  </div>
+
+</div><!-- /page-content -->
+
+<!-- Modal Detail Buku -->
+<div class="modal-backdrop" id="modalDetail">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <span class="modal-title" id="detailTitle">Detail Bahan Ajar</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// Simpan data di variabel lokal agar bisa dimodifikasi
+let stokData = [];
+
+window.addEventListener('DOMContentLoaded', function() {
+  const user = JSON.parse(sessionStorage.getItem('sitta_user'));
+  if (!user) { window.location.href = 'index.html'; return; }
+  document.getElementById('navNama').textContent = user.nama;
+  document.getElementById('navAvatar').textContent = user.nama.charAt(0);
+
+  // Salin data dari data.js ke variabel lokal
+  stokData = [...dataBahanAjar];
+  renderAll();
+});
+
+// =============================================
+// RENDER DATA
+// =============================================
+function renderAll() {
+  renderTable();
+  renderGrid();
+  updateStats();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tbStok');
+  tbody.innerHTML = stokData.map((b, i) => `
+    <tr>
+      <td style="color:var(--gray-400);font-size:.8rem;">${i + 1}</td>
+      <td style="font-family:var(--mono);font-size:.78rem;">${b.kodeLokasi}</td>
+      <td style="font-family:var(--mono);font-size:.78rem;color:var(--ut-green);font-weight:700;">${b.kodeBarang}</td>
+      <td style="font-weight:600;">${b.namaBarang}</td>
+      <td><span class="badge badge-gold">${b.jenisBarang}</span></td>
+      <td>Edisi ${b.edisi}</td>
+      <td><span class="badge badge-green">${b.stok.toLocaleString('id-ID')}</span></td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="lihatDetail(${i})">👁 Detail</button>
+        <button class="btn btn-danger btn-sm" onclick="hapusStok(${i})" style="margin-left:4px;">🗑</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderGrid() {
+  const grid = document.getElementById('gridStok');
+  grid.innerHTML = stokData.map((b, i) => `
+    <div class="book-card" onclick="lihatDetail(${i})" style="cursor:pointer;">
+      <div class="book-cover">
+        <img src="${b.cover}" alt="${b.namaBarang}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22220%22 height=%22160%22><rect fill=%22%23e2e8f0%22 width=%22100%25%22 height=%22100%25%22/><text x=%2250%25%22 y=%2250%25%22 font-size=%2240%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>📚</text></svg>'">
+        <span class="stok-badge">${b.stok}</span>
+      </div>
+      <div class="book-info">
+        <div class="book-code">${b.kodeBarang}</div>
+        <div class="book-name">${b.namaBarang}</div>
+        <div class="book-meta">
+          <span class="edisi">Edisi ${b.edisi}</span>
+          <span class="jenis">${b.jenisBarang}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  document.getElementById('totalItem').textContent = stokData.length;
+  document.getElementById('totalStokAll').textContent = stokData.reduce((s, b) => s + b.stok, 0).toLocaleString('id-ID');
+  const lokasi = new Set(stokData.map(b => b.kodeLokasi));
+  document.getElementById('totalLokasi').textContent = lokasi.size;
+}
+
+// =============================================
+// TOGGLE VIEW
+// =============================================
+function toggleView(mode) {
+  document.getElementById('viewTable').classList.toggle('hidden', mode !== 'table');
+  document.getElementById('viewGrid').classList.toggle('hidden', mode !== 'grid');
+}
+
+// =============================================
+// FORM TAMBAH STOK (DOM Manipulation)
+// =============================================
+function toggleAddForm() {
+  const el = document.getElementById('addStokSection');
+  el.classList.toggle('hidden');
+  if (!el.classList.contains('hidden')) {
+    el.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+function tambahStok() {
+  const kodeLokasi  = document.getElementById('newKodeLokasi').value.trim();
+  const kodeBarang  = document.getElementById('newKodeBarang').value.trim();
+  const namaBarang  = document.getElementById('newNamaBarang').value.trim();
+  const jenisBarang = document.getElementById('newJenis').value;
+  const edisi       = document.getElementById('newEdisi').value;
+  const stok        = parseInt(document.getElementById('newStok').value);
+
+  // Validasi
+  if (!kodeLokasi || !kodeBarang || !namaBarang) {
+    showToast('Kode Lokasi, Kode Barang, dan Nama wajib diisi!', 'error');
+    return;
+  }
+  if (isNaN(stok) || stok < 0) {
+    showToast('Jumlah stok tidak valid!', 'error');
+    return;
+  }
+
+  // Tambah ke array menggunakan DOM manipulation
+  const newItem = {
+    kodeLokasi,
+    kodeBarang,
+    namaBarang,
+    jenisBarang,
+    edisi,
+    stok,
+    cover: ''
+  };
+  stokData.push(newItem);
+
+  // Re-render tabel dan kartu
+  renderAll();
+
+  // Reset form
+  ['newKodeLokasi','newKodeBarang','newNamaBarang','newStok'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+
+  showToast('Data stok berhasil ditambahkan!', 'success');
+  document.getElementById('addStokSection').classList.add('hidden');
+}
+
+// =============================================
+// HAPUS STOK
+// =============================================
+function hapusStok(index) {
+  if (!confirm(`Hapus bahan ajar "${stokData[index].namaBarang}"?`)) return;
+  stokData.splice(index, 1);
+  renderAll();
+  showToast('Data berhasil dihapus.', 'success');
+}
+
+// =============================================
+// DETAIL MODAL
+// =============================================
+function lihatDetail(index) {
+  const b = stokData[index];
+  document.getElementById('detailTitle').textContent = b.namaBarang;
+  document.getElementById('detailBody').innerHTML = `
+    <div style="background:var(--gray-50);border-radius:8px;overflow:hidden;margin-bottom:16px;">
+      <img src="${b.cover}" alt="${b.namaBarang}" style="width:100%;height:180px;object-fit:cover;"
+        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22180%22><rect fill=%22%23e2e8f0%22 width=%22100%25%22 height=%22100%25%22/><text x=%2250%25%22 y=%2250%25%22 font-size=%2260%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22>📚</text></svg>'">
+    </div>
+    ${[
+      ['Kode Lokasi', b.kodeLokasi],
+      ['Kode Barang', b.kodeBarang],
+      ['Jenis Barang', b.jenisBarang],
+      ['Edisi', 'Edisi ' + b.edisi],
+      ['Stok Tersedia', b.stok.toLocaleString('id-ID') + ' unit']
+    ].map(([l, v]) => `
+      <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100);">
+        <span style="font-size:.8rem;color:var(--gray-400);font-weight:600;">${l}</span>
+        <span style="font-weight:600;color:var(--gray-800);">${v}</span>
+      </div>
+    `).join('')}
+  `;
+  document.getElementById('modalDetail').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modalDetail').classList.remove('show');
+}
+
+function logout() {
+  if (confirm('Keluar dari SITTA?')) {
+    sessionStorage.removeItem('sitta_user');
+    window.location.href = 'index.html';
+  }
+}
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+
+</body>
+</html>

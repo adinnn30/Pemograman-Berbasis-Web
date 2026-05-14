@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITTA – Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/data.js" defer></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    📚 SITTA <span class="brand-badge">UT</span>
+  </div>
+  <div class="nav-links">
+    <a href="dashboard.html" class="active">🏠 Dashboard</a>
+    <a href="stok.html">📦 Informasi Bahan Ajar</a>
+    <a href="tracking.html">🚚 Tracking Pengiriman</a>
+    <div class="nav-dropdown" id="dropLaporan">
+      <button onclick="toggleDropdown()">📊 Laporan ▾</button>
+      <div class="nav-dropdown-menu">
+        <a href="#" onclick="showSection('monitoring')">📈 Monitoring Progress DO</a>
+        <a href="#" onclick="showSection('rekap')">📋 Rekap Bahan Ajar</a>
+      </div>
+    </div>
+    <a href="#" onclick="showSection('histori')">🕒 Histori Transaksi</a>
+  </div>
+  <div class="nav-user">
+    <div class="nav-avatar" id="navAvatar">–</div>
+    <span id="navNama">–</span>
+    <button class="btn-logout" onclick="logout()">Keluar</button>
+  </div>
+</nav>
+
+<!-- GREETING BAR -->
+<div class="greeting-bar">
+  <div class="greeting-text">
+    <h2 id="greetingMsg">Selamat Datang!</h2>
+    <p id="greetingUser">Memuat data pengguna...</p>
+  </div>
+  <div class="greeting-time" id="greetingTime">–</div>
+</div>
+
+<div class="page-content">
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon green">📚</div>
+      <div class="stat-info"><div class="label">Total Bahan Ajar</div><div class="value">5</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon gold">📦</div>
+      <div class="stat-info"><div class="label">Total Stok</div><div class="value" id="totalStok">0</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">🚚</div>
+      <div class="stat-info"><div class="label">Pengiriman Aktif</div><div class="value">2</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">✅</div>
+      <div class="stat-info"><div class="label">DO Selesai</div><div class="value">1</div></div>
+    </div>
+  </div>
+
+  <!-- SECTION: HOME (default) -->
+  <div id="sec-home">
+    <div class="grid-2">
+      <!-- Ringkasan Bahan Ajar -->
+      <div class="card">
+        <div class="card-title"><span class="icon">📚</span> Bahan Ajar Tersedia</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kode</th><th>Nama Bahan Ajar</th><th>Stok</th><th>Status</th></tr></thead>
+            <tbody id="tbBahanAjar"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Aktivitas Terakhir -->
+      <div class="card">
+        <div class="card-title"><span class="icon">🕒</span> Pengiriman Terakhir</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>No. DO</th><th>Nama</th><th>Ekspedisi</th><th>Status</th></tr></thead>
+            <tbody id="tbTracking"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: Monitoring Progress DO -->
+  <div id="sec-monitoring" class="hidden">
+    <div class="page-header">
+      <h1>📈 Monitoring Progress DO Bahan Ajar</h1>
+      <p>Status pengiriman Delivery Order bahan ajar</p>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No. DO</th><th>Penerima</th><th>Ekspedisi</th><th>Tgl Kirim</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody id="tbMonitoring"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: Rekap Bahan Ajar -->
+  <div id="sec-rekap" class="hidden">
+    <div class="page-header">
+      <h1>📋 Rekap Bahan Ajar</h1>
+      <p>Rekap keseluruhan stok bahan ajar UT</p>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kode Lokasi</th><th>Kode Barang</th><th>Nama</th><th>Jenis</th><th>Edisi</th><th>Stok</th></tr></thead>
+          <tbody id="tbRekap"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: Histori -->
+  <div id="sec-histori" class="hidden">
+    <div class="page-header">
+      <h1>🕒 Histori Transaksi Bahan Ajar</h1>
+      <p>Riwayat semua transaksi pengiriman bahan ajar</p>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No. DO</th><th>Nama</th><th>Paket</th><th>Ekspedisi</th><th>Tgl Kirim</th><th>Total</th><th>Status</th></tr></thead>
+          <tbody id="tbHistori"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-content -->
+
+<div id="toast-container"></div>
+
+<script>
+// =============================================
+// CEK SESI LOGIN
+// =============================================
+window.addEventListener('DOMContentLoaded', function() {
+  const user = JSON.parse(sessionStorage.getItem('sitta_user'));
+  if (!user) {
+    alert('Sesi habis. Silakan login kembali.');
+    window.location.href = 'index.html';
+    return;
+  }
+
+  // Tampilkan info user
+  document.getElementById('navNama').textContent = user.nama;
+  document.getElementById('navAvatar').textContent = user.nama.charAt(0).toUpperCase();
+
+  // Greeting berdasarkan waktu
+  const jam = new Date().getHours();
+  let sapaan = jam < 11 ? '☀️ Selamat Pagi' : jam < 15 ? '🌤️ Selamat Siang' : '🌆 Selamat Sore';
+  document.getElementById('greetingMsg').textContent = sapaan + ', ' + user.nama + '!';
+  document.getElementById('greetingUser').textContent = user.role + ' – ' + user.lokasi;
+
+  // Jam berjalan
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Isi data tabel
+  populateBahanAjar();
+  populateTracking();
+  populateMonitoring();
+  populateRekap();
+  populateHistori();
+
+  // Total stok
+  const total = dataBahanAjar.reduce((s, b) => s + b.stok, 0);
+  document.getElementById('totalStok').textContent = total.toLocaleString('id-ID');
+});
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('greetingTime').textContent =
+    now.toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) +
+    ' • ' + now.toLocaleTimeString('id-ID');
+}
+
+// =============================================
+// POPULASI TABEL
+// =============================================
+function populateBahanAjar() {
+  const tbody = document.getElementById('tbBahanAjar');
+  tbody.innerHTML = dataBahanAjar.map(b => `
+    <tr>
+      <td><span style="font-family:var(--mono);font-size:.8rem;color:var(--ut-green)">${b.kodeBarang}</span></td>
+      <td style="font-weight:600">${b.namaBarang}</td>
+      <td><span class="badge badge-green">${b.stok}</span></td>
+      <td><span class="badge badge-gold">${b.jenisBarang}</span></td>
+    </tr>
+  `).join('');
+}
+
+function populateTracking() {
+  const tbody = document.getElementById('tbTracking');
+  tbody.innerHTML = Object.values(dataTracking).map(t => `
+    <tr>
+      <td><span style="font-family:var(--mono);font-size:.8rem">${t.nomorDO}</span></td>
+      <td style="font-weight:600">${t.nama}</td>
+      <td>${t.ekspedisi}</td>
+      <td><span class="badge ${t.status==='Dikirim'?'badge-green':'badge-gold'}">${t.status}</span></td>
+    </tr>
+  `).join('');
+}
+
+function populateMonitoring() {
+  const tbody = document.getElementById('tbMonitoring');
+  tbody.innerHTML = Object.values(dataTracking).map(t => `
+    <tr>
+      <td><span style="font-family:var(--mono);font-size:.8rem">${t.nomorDO}</span></td>
+      <td style="font-weight:600">${t.nama}</td>
+      <td>${t.ekspedisi}</td>
+      <td>${t.tanggalKirim}</td>
+      <td style="font-weight:600;color:var(--ut-green)">${t.total}</td>
+      <td><span class="badge ${t.status==='Dikirim'?'badge-green':'badge-gold'}">${t.status}</span></td>
+    </tr>
+  `).join('');
+}
+
+function populateRekap() {
+  const tbody = document.getElementById('tbRekap');
+  tbody.innerHTML = dataBahanAjar.map(b => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:.8rem">${b.kodeLokasi}</td>
+      <td style="font-family:var(--mono);font-size:.8rem;color:var(--ut-green)">${b.kodeBarang}</td>
+      <td style="font-weight:600">${b.namaBarang}</td>
+      <td><span class="badge badge-gold">${b.jenisBarang}</span></td>
+      <td>Edisi ${b.edisi}</td>
+      <td><span class="badge badge-green">${b.stok}</span></td>
+    </tr>
+  `).join('');
+}
+
+function populateHistori() {
+  const tbody = document.getElementById('tbHistori');
+  tbody.innerHTML = Object.values(dataTracking).map(t => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:.8rem">${t.nomorDO}</td>
+      <td style="font-weight:600">${t.nama}</td>
+      <td style="font-family:var(--mono);font-size:.8rem">${t.paket}</td>
+      <td>${t.ekspedisi}</td>
+      <td>${t.tanggalKirim}</td>
+      <td style="font-weight:600;color:var(--ut-green)">${t.total}</td>
+      <td><span class="badge ${t.status==='Dikirim'?'badge-green':'badge-gold'}">${t.status}</span></td>
+    </tr>
+  `).join('');
+}
+
+// =============================================
+// NAVIGASI SECTION
+// =============================================
+const sections = ['home','monitoring','rekap','histori'];
+function showSection(name) {
+  sections.forEach(s => {
+    const el = document.getElementById('sec-' + s);
+    if (el) el.classList.add('hidden');
+  });
+  const target = document.getElementById('sec-' + name);
+  if (target) target.classList.remove('hidden');
+  // Tutup dropdown
+  document.getElementById('dropLaporan').classList.remove('open');
+}
+
+function toggleDropdown() {
+  document.getElementById('dropLaporan').classList.toggle('open');
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#dropLaporan')) {
+    document.getElementById('dropLaporan').classList.remove('open');
+  }
+});
+
+// =============================================
+// LOGOUT
+// =============================================
+function logout() {
+  if (confirm('Apakah Anda yakin ingin keluar?')) {
+    sessionStorage.removeItem('sitta_user');
+    window.location.href = 'index.html';
+  }
+}
+
+function showToast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+</script>
+
+</body>
+</html>
